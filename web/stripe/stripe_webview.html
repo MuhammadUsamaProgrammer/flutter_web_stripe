@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Stripe Payment</title>
+    <script src="https://js.stripe.com/v3/"></script>
+  </head>
+  <body>
+
+    <style>
+      body {
+        font-family: 'Segoe UI', Arial, sans-serif;
+        background: #f7f7f7;
+        margin: 0;
+        padding: 0;
+      }
+      #amount-display {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        margin-top: 24px;
+        margin-bottom: 8px;
+      }
+      #amount-display span {
+        background: linear-gradient(90deg, #e0e7ff 0%, #f1f3f6 100%);
+        padding: 7px 18px;
+        border-radius: 12px;
+        font-size: 1rem;
+        font-weight: 400;
+        color: #333;
+        box-shadow: 0 1px 4px rgba(99,91,255,0.05);
+        letter-spacing: 0.2px;
+        border: 1px solid #e0e7ff;
+        margin-bottom: 0;
+        transition: box-shadow 0.2s;
+      }
+      #amount-display span::before {
+        content: "Amount Due: ";
+        color: #635bff;
+        font-weight: 400;
+        margin-right: 4px;
+      }
+      #payment-element {
+        margin: 0 auto 24px auto;
+        padding: 24px;
+        background: #fff;
+        border-radius: 16px;
+        box-shadow: 0 2px 12px rgba(0,0,0,0.07);
+        max-width: 400px;
+      }
+      #pay-now-btn {
+        display: block;
+        margin: 0 auto 24px auto;
+        padding: 14px 0;
+        width: 220px;
+        background: linear-gradient(90deg, #635bff 0%, #2ec4b6 100%);
+        color: #fff;
+        font-size: 1.1rem;
+        font-weight: 600;
+        border: none;
+        border-radius: 8px;
+        box-shadow: 0 2px 8px rgba(99,91,255,0.10);
+        cursor: pointer;
+        letter-spacing: 1px;
+        transition: background 0.2s, box-shadow 0.2s, transform 0.1s;
+      }
+      #pay-now-btn:hover, #pay-now-btn:focus {
+        background: linear-gradient(90deg, #2ec4b6 0%, #635bff 100%);
+        box-shadow: 0 4px 16px rgba(99,91,255,0.18);
+        transform: translateY(-2px) scale(1.03);
+        outline: none;
+      }
+    </style>
+    <div id="amount-display">
+      <span></span>
+    </div>
+    <div id="payment-element"></div>
+    <button id="pay-now-btn">Pay Now</button>
+    <script>
+      function getQueryParam(param) {
+        const urlParams = new URLSearchParams(window.location.search);
+        return urlParams.get(param);
+      }
+      const publishableKey = getQueryParam('publishable_key');
+      const stripe = Stripe(publishableKey);
+
+      const clientSecret = getQueryParam('client_secret');
+      const amountCents = getQueryParam('amount');
+      if (amountCents) {
+        const dollars = (parseInt(amountCents, 10) / 100).toFixed(2);
+        document.querySelector('#amount-display span').textContent = `$${dollars}`;
+      }
+      const elements = stripe.elements({
+        clientSecret: clientSecret,
+      });
+
+      const paymentElement = elements.create("payment");
+      paymentElement.mount("#payment-element");
+
+      document
+        .getElementById("pay-now-btn")
+        .addEventListener("click", async () => {
+          await stripe
+            .confirmPayment({
+              elements,
+              confirmParams: {
+              },
+              redirect: "if_required"
+            })
+            .then((result) => {
+              console.log(result);
+              if (result.error) {
+                alert(result.error.message || "Payment failed");
+              } else if (result.paymentIntent && result.paymentIntent.status === "succeeded") {
+                // Notify Flutter/Dart parent that payment succeeded
+                if (window.parent) {
+                  window.parent.postMessage("success", "*");
+                } else {
+                  // fallback: try closing window
+                  window.close();
+                }
+              }
+            })
+            .catch((err) => {
+              console.log(err);
+            });
+        });
+
+      console.log(elements);
+    </script>
+  </body>
+</html>
