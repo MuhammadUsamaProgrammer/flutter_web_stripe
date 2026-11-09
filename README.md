@@ -21,7 +21,7 @@ A professional Flutter web application for integrating Stripe payments seamlessl
 1. **Clone the repository:**
    ```sh
    git clone https://github.com/MuhammadUsamaProgrammer/flutter_web_stripe.git
-   cd web_stripe
+   cd flutter_web_stripe
    ```
 2. **Install dependencies:**
    ```sh
